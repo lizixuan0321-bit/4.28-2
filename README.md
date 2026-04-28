@@ -43,7 +43,7 @@ formula, loss function, or hyper-parameter (`lamb=1.5`, `temperature=0.2`,
 | 3 | `common/utils.py` | Added `-test_seed` (default `2024`) | Makes the test sampler reproducible across runs of the same checkpoint. |
 | 4 | `common/utils.py` | Consolidated duplicate `load_model` | The shadowed second version silently dropped mismatched keys; replaced with a single robust loader that handles `module.` prefix and warns on missing keys. |
 | 5 | `train.py` | Track top-3 best-val checkpoints (`topk_epoch*.pth`) | Cheap insurance against the noisy online val signal overwriting a truly better checkpoint. |
-| 6 | `test.py` | Re-rank all candidate checkpoints on a 1200-episode fixed validation set, then test the winner | Selects the checkpoint that the small online val set may have missed. |
+| 6 | `test.py` | Re-rank `max_acc.pth` + `topk_epoch*.pth` on a 1200-episode fixed validation set, then test the winner | Selects the checkpoint that the small online val set may have missed.  Periodic `[0-9]*.pth` files are only re-ranked as a fallback when no top-K checkpoint is present (e.g. resumed runs), so a normal run only re-ranks 4 candidates instead of 13. |
 | 7 | `test.py` | Standalone entry instantiates `MSFIN` instead of `RENet` | The previous code instantiated the wrong model when running `python test.py` directly. |
 
 Running `train.sh` / `test.sh` as-is now applies all the fixes above

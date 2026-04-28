@@ -95,13 +95,19 @@ def _select_best_checkpoint(model, args):
     if os.path.isfile(ma):
         candidates.append(('max_acc', ma))
 
-    # 2) Include top-K checkpoints saved during training
-    for p in sorted(glob.glob(os.path.join(args.save_path, 'topk_epoch*.pth'))):
+    # 2) Include top-K checkpoints saved during training (primary source)
+    topk_paths = sorted(glob.glob(os.path.join(args.save_path, 'topk_epoch*.pth')))
+    for p in topk_paths:
         candidates.append((os.path.basename(p), p))
 
-    # 3) Include any periodic epoch checkpoints (save_freq) -- these are fallbacks
-    for p in sorted(glob.glob(os.path.join(args.save_path, '[0-9]*.pth'))):
-        candidates.append((os.path.basename(p), p))
+    # 3) Fallback: only include periodic [0-9]*.pth when top-K tracking is
+    #    unavailable (e.g. resumed training, older runs without top-K saving,
+    #    or accidental file deletion).  When top-K exists it already captures
+    #    the best epochs by val accuracy, so re-ranking the rarely-competitive
+    #    early-epoch periodic checkpoints just wastes time.
+    if not topk_paths:
+        for p in sorted(glob.glob(os.path.join(args.save_path, '[0-9]*.pth'))):
+            candidates.append((os.path.basename(p), p))
 
     # de-dup paths
     seen, uniq = set(), []
