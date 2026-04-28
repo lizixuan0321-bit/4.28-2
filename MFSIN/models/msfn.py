@@ -23,6 +23,14 @@ import numpy as np
 Original TokenLearner Module modified from:
 https://github.com/google-research/scenic/blob/main/scenic/projects/token_learner/model.py
 """
+
+def depthwise_separable_conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False):
+    """3x3 standard conv replaced by depthwise spatial conv + 1x1 pointwise conv."""
+    return nn.Sequential(
+        nn.Conv2d(in_channels, in_channels, kernel_size, stride, padding, groups=in_channels, bias=bias),
+        nn.Conv2d(in_channels, out_channels, 1, 1, 0, bias=bias),
+    )
+
 class LayerNorm(nn.Module):  # layernorm, but done in the channel dimension #1
     def __init__(self, dim, eps=1e-6):
         super().__init__()
@@ -46,13 +54,13 @@ class MSFN(nn.Module):
 
         self.selected_func = nn.Sequential(
             LayerNorm(self.in_dim),
-            nn.Conv2d(self.in_dim, self.num_token, 3, 1, 1, bias=False),
+            depthwise_separable_conv2d(self.in_dim, self.num_token),
             nn.GELU(),
-            nn.Conv2d(self.num_token, self.num_token, 3, 1, 1, bias=False),
+            depthwise_separable_conv2d(self.num_token, self.num_token),
             nn.GELU(),
-            nn.Conv2d(self.num_token, self.num_token, 3, 1, 1, bias=False),
+            depthwise_separable_conv2d(self.num_token, self.num_token),
             nn.GELU(),
-            nn.Conv2d(self.num_token, self.num_token, 3, 1, 1, bias=False),
+            depthwise_separable_conv2d(self.num_token, self.num_token),
             Rearrange('b n h w -> b n (h w)'),
             nn.Sigmoid()
         )
